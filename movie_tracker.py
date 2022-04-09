@@ -55,7 +55,7 @@ def get_popular_movie():
         get_popular_movie_info(movie)
         popularMovie.append(movie)
         count += 1
-        if(count > 10):
+        if(count > 50):
             break;
     return popularMovie
 
@@ -67,7 +67,9 @@ def get_popular_movie_info(movie):
         movieData = response.json()
         movie.MovieDescription = movieData['Plot']
         movie.PGRate = movieData['Rated']
-        movie.Genre = movieData['Genre'].split(',')
+        movie.Genre = []
+        for item in movieData['Genre'].split(','):
+            movie.Genre.append(item.strip())
         movie.MovieRating = movieData['imdbRating']
     except:
         print("Some data might be missing.")
@@ -83,18 +85,18 @@ class Movie:
         self.MovieRating = ''
         self.MovieYear = ''
 
-def get_movie_info(movie):
-    params = {'t':movie.MovieName, 'y': movie.MovieYear, 'plot':'full'}
-    try:
-        response = requests.get('http://www.omdbapi.com/?apikey=c5eb6c3c',params=params)
-        movieData = response.json()
-        movie.MovieDescription = movieData['Plot']
-        movie.PGRate = movieData['Rated']
-        movie.Genre = movieData['Genre']
-        movie.MovieRating = movieData['Ratings']
-    except:
-        print("hi")
-    pass
+# def get_movie_info(movie):
+#     params = {'t':movie.MovieName, 'y': movie.MovieYear, 'plot':'full'}
+#     try:
+#         response = requests.get('http://www.omdbapi.com/?apikey=c5eb6c3c',params=params)
+#         movieData = response.json()
+#         movie.MovieDescription = movieData['Plot']
+#         movie.PGRate = movieData['Rated']
+#         movie.Genre = movieData['Genre']
+#         movie.MovieRating = movieData['Ratings']
+#     except:
+#         print("hi")
+#     pass
 
 def getGenre(movies):
     """
@@ -106,7 +108,7 @@ def getGenre(movies):
         if(isinstance(item.Genre, list)):
             for eachG in item.Genre:
                 if(eachG not in genreList):
-                    genreList.append(item.Genre)
+                    genreList.append(eachG)
         else:
             if(item.Genre not in genreList):
                     genreList.append(item.Genre)           
@@ -122,6 +124,14 @@ def constructTree(movies, genreList):
     tree = {}
     for genre in genreList:
         for movie in movies:
+            if(isinstance(movie.Genre , list)):
+                if(genre in movie.Genre):
+                    if genre in tree:
+                        movieData = tree[genre]
+                    else:
+                        movieData = {}
+                    movieData[movie.MovieName] = {'URL': movie.TicketURL, 'PG':movie.PGRate, 'Description':movie.MovieDescription}
+                    tree[genre] = movieData
             if(movie.Genre == genre):
                 if genre in tree:
                     movieData = tree[genre]
@@ -134,11 +144,8 @@ def constructTree(movies, genreList):
 
 
 def main():
-    data = get_recent_movie()
-    tree = constructTree(data, getGenre(data))
+    data = get_recent_movie()()
 
-
-    
 
 
 if __name__ == "__main__":
