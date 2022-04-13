@@ -1,7 +1,46 @@
 import requests
+import json
 from bs4 import BeautifulSoup
 #OMDb API: http://www.omdbapi.com/?i=tt3896198&apikey=c5eb6c3c
 #API Key: 2a79e05ccbae6651cc86911773917142
+
+
+CACHE_FILENAME = "cache.json"
+def open_cache():
+    ''' opens the cache file if it exists and loads the JSON into
+    a dictionary, which it then returns.
+    if the cache file doesn't exist, creates a new cache dictionary
+    Parameters
+    ----------
+    None
+    Returns
+    -------
+    The opened cache
+    '''
+    try:
+        cache_file = open(CACHE_FILENAME, 'r')
+        cache_contents = cache_file.read()
+        cache_dict = json.loads(cache_contents)
+        cache_file.close()
+    except:
+        cache_dict = {}
+    return cache_dict
+
+def save_cache(cache_dict):
+    ''' saves the current state of the cache to disk
+    Parameters
+    ----------
+    cache_dict: dict
+        The dictionary to save
+    Returns
+    -------
+    None
+    '''
+    dumped_json_cache = json.dumps(cache_dict)
+    fw = open(CACHE_FILENAME,"w")
+    fw.write(dumped_json_cache)
+    fw.close() 
+
 
 def get_movie_info_fromWeb(movie):
     req = requests.get(movie.TicketURL)
@@ -13,8 +52,18 @@ def get_movie_info_fromWeb(movie):
     movie.MovieDescription = soup.find('p',class_='show-text').get_text()
     movie.Genre = soup.find(attrs={'itemprop': 'genre' }).get_text()
 
+    return (movie.Genre, movie.PGRate, movie.MovieDescription)
 
-def get_recent_movie():
+def assignDataToMovieObj(movieData, movieObject):
+        movieObject.TicketURL = movieData['URL']
+        movieObject.Genre =  movieData['gengre']
+        movieObject.PGRate = movieData['PG']
+        movieObject.MovieDescription = movieData['description']
+        movieObject.MovieRating = movieData['rating']
+        movieObject.MovieYear = movieData['year']
+
+
+def get_recent_movie(MOVIE_CACHE):
     """
     Function that do web scrapping and get the newest movie
     from the ACM's website.
@@ -26,20 +75,26 @@ def get_recent_movie():
     soup = BeautifulSoup(req.content, 'html.parser')
     data = soup.find_all("div", class_="PosterContent")
     for item in data:
-        try:
-            releaseDate = item.find("span", class_="MoviePosters__released-month clearfix").get_text()
-            releaseDate = " ".join(releaseDate.split()[1:])
-        except:
-            continue
         movieObject = Movie()
-        movieObject.MovieYear = releaseDate[-4:]
         movieObject.MovieName = item.find("h3").string
-        movieObject.TicketURL = "https://www.amctheatres.com" + item.a['href']
-        get_movie_info_fromWeb(movieObject)
+        if(movieObject.MovieName in MOVIE_CACHE):
+            assignDataToMovieObj(MOVIE_CACHE[movieObject.MovieName], movieObject)
+        else:
+            try:
+                releaseDate = item.find("span", class_="MoviePosters__released-month clearfix").get_text()
+                releaseDate = " ".join(releaseDate.split()[1:])
+                releaseYear = releaseDate[-4:]
+            except:
+                continue
+            movieObject.MovieYear = releaseYear
+            movieObject.TicketURL = "https://www.amctheatres.com" + item.a['href']
+            (gengre,PG, description) = get_movie_info_fromWeb(movieObject)
+            MOVIE_CACHE[movieObject.MovieName] = {'gengre': gengre, 'PG': PG, 'description': description, 'rating': 'N/A', 'year': releaseYear, 'URL':movieObject.TicketURL}
+            save_cache(MOVIE_CACHE)
         allMovies.append(movieObject)
     return allMovies
 
-def get_popular_movie():
+def get_popular_movie(MOVIE_CACHE):
     popularMovie = []
     count = 0
     url = 'https://www.imdb.com/chart/top/?ref_=nv_mv_250'
@@ -47,13 +102,22 @@ def get_popular_movie():
     soup = BeautifulSoup(req.content, 'html.parser')
     data = soup.find_all("td", class_="titleColumn")
     for item in data:
-        movie = Movie()
-        movie.TicketURL = 'https://www.imdb.com' + item.a['href']
+        movieObject = Movie()
         itemData = item.get_text().strip().split('\n')
-        movie.MovieName = itemData[1].lstrip()
-        movie.MovieYear = itemData[-1][1:5]
-        get_popular_movie_info(movie)
-        popularMovie.append(movie)
+        movieObject.MovieName = itemData[1].lstrip()
+        if(movieObject.MovieName in MOVIE_CACHE):
+            assignDataToMovieObj(MOVIE_CACHE[movieObject.MovieName], movieObject)
+        else:
+            movieObject.TicketURL = 'https://www.imdb.com' + item.a['href']
+            movieObject.MovieYear = itemData[-1][1:5]
+            (description, PG, gengre, rating) = get_popular_movie_info(movieObject)
+            movie_data = {'gengre': gengre, 'PG': PG, 'description': description, 'rating': rating, 'year': movieObject.MovieYear, 'URL':movieObject.TicketURL}
+            assignDataToMovieObj(movie_data, movieObject)
+            MOVIE_CACHE[movieObject.MovieName] = movie_data
+            save_cache(MOVIE_CACHE)
+    
+        popularMovie.append(movieObject)
+
         count += 1
         if(count > 50):
             break;
@@ -62,18 +126,22 @@ def get_popular_movie():
 
 def get_popular_movie_info(movie):
     params = {'t':movie.MovieName, 'y': movie.MovieYear, 'plot':'full'}
+    description = ''
+    PG = ''
+    gengre = []
+    rating = ''
     try:
         response = requests.get('http://www.omdbapi.com/?apikey=c5eb6c3c',params=params)
         movieData = response.json()
-        movie.MovieDescription = movieData['Plot']
-        movie.PGRate = movieData['Rated']
-        movie.Genre = []
+        description = movieData['Plot']
+        PG = movieData['Rated']
         for item in movieData['Genre'].split(','):
-            movie.Genre.append(item.strip())
-        movie.MovieRating = movieData['imdbRating']
+            gengre.append(item.strip())
+        rating = movieData['imdbRating']
     except:
         print("Some data might be missing.")
-    pass
+    return (description, PG, gengre, rating)
+
 
 class Movie:
     def __init__(self):
@@ -85,18 +153,6 @@ class Movie:
         self.MovieRating = ''
         self.MovieYear = ''
 
-# def get_movie_info(movie):
-#     params = {'t':movie.MovieName, 'y': movie.MovieYear, 'plot':'full'}
-#     try:
-#         response = requests.get('http://www.omdbapi.com/?apikey=c5eb6c3c',params=params)
-#         movieData = response.json()
-#         movie.MovieDescription = movieData['Plot']
-#         movie.PGRate = movieData['Rated']
-#         movie.Genre = movieData['Genre']
-#         movie.MovieRating = movieData['Ratings']
-#     except:
-#         print("hi")
-#     pass
 
 def getGenre(movies):
     """
@@ -144,7 +200,9 @@ def constructTree(movies, genreList):
 
 
 def main():
-    data = get_recent_movie()()
+    MOVIE_CACHE = open_cache()
+    data = get_popular_movie(MOVIE_CACHE)
+    print(data)
 
 
 
