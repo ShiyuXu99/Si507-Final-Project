@@ -3,6 +3,9 @@ import json
 from bs4 import BeautifulSoup
 import plotly.express as px
 from tabulate import tabulate
+import webbrowser
+from build_tree import *
+
 
 #OMDb API: http://www.omdbapi.com/?i=tt3896198&apikey=c5eb6c3c
 #API Key: 2a79e05ccbae6651cc86911773917142
@@ -155,68 +158,39 @@ class Movie:
         self.MovieYear = ''
 
 
-def getGenre(movies):
-    """
-    Function that grabs all the genre type for future tree structure
-    returns a word list of genres.
-    """
-    genreList = []
-    for item in movies:
-        if(isinstance(item.Genre, list)):
-            for eachG in item.Genre:
-                if(eachG not in genreList):
-                    genreList.append(eachG)
-        else:
-            if(item.Genre not in genreList):
-                    genreList.append(item.Genre)           
-    return genreList
-        
-def constructTree(movies, genreList):
-    """
-    Function will construct the data table into a tree for retrieving information
-    parameter1: list of movie objects
-    parameter2: list of grenres
-    returns a tree of data.
-    """
-    tree = {}
-    for genre in genreList:
-        for movie in movies:
-            if(isinstance(movie.Genre , list)):
-                if(genre in movie.Genre):
-                    if genre in tree:
-                        movieData = tree[genre]
-                    else:
-                        movieData = {}
-                    movieData[movie.MovieName] = {'URL': movie.TicketURL, 'PG':movie.PGRate, 'Description':movie.MovieDescription}
-                    tree[genre] = movieData
-            if(movie.Genre == genre):
-                if genre in tree:
-                    movieData = tree[genre]
-                else:
-                    movieData = {}
-                movieData[movie.MovieName] = {'URL': movie.TicketURL, 'PG':movie.PGRate, 'Description':movie.MovieDescription}
-                tree[genre] = movieData
-    return tree
 def printMovies(gengreChose, tree):
     data = []
     count = 1
+    track = {}
     for key in tree:
         longtext =  tree[key]['Description'].split()
         grouped_words = [' '.join(longtext[i: i + 10]) for i in range(0, len(longtext), 10)]
         des = '\n'.join(grouped_words)
         data.append([count, key, tree[key]['PG'], des]) 
+        track[count] = tree[key]['URL']
         count += 1
     print(tabulate(data, headers=["Movie Index", "Movie Name","Movie PG", "Movie Description"], tablefmt="fancy_grid"))
     while(True):
-        choice = input("Please pick a movie and I will redirect you to the movie page. If none of the movie interest you , type quit or back to chose a different gengre: ")
+        choice = input("Please pick a movie by index and I will redirect you to the ticket/information page. \nIf none of the movie interest you , type 'quit' or 'back' to chose a different gengre: ")
         if(choice.lower() == 'back'):
             return True
         elif(choice.lower() == 'quit'):
             return False
+        elif(choice.isnumeric()):
+            if(int(choice) < 1 or int(choice) > count - 1):
+                print("Please enter a valid number between {} and {}".format(1,count - 1))
+            else:
+                URL = track[int(choice)]
+                webbrowser.open(URL)  # Go to example.com
+                break;
+        else:
+            print("Please enter a movie index, or 'back' for returning to gengre, or 'quit")
 
 
 
-def drawPieChart(tree):
+
+
+def drawChart(tree, typeTree):
     df = px.data.tips()
     value = []
     names = []
@@ -226,8 +200,12 @@ def drawPieChart(tree):
         value.append(len(tree[key]))
         names.append(namestr)
         counter += 1
-    fig = px.pie(values= value, names=names)
+    if(typeTree == 'recent'):
+        fig = px.pie(values= value, names=names)
+    else:
+        fig = px.bar(x = names, y = value)
     fig.show()
+
     ans = num("Please pick a number for the gengre that you are interest in. ", 1, len(value))
     for name in names:
         namedata = name.split('.')
@@ -262,15 +240,16 @@ def num(prompt, min, max):
         except:
             print("Please enter a valid number between {} and {}".format(min,max))
 
-def interaction(tree):
+def interaction(tree, typeTree):
     while(True):
-        gengreChose = drawPieChart(tree)
+        gengreChose = drawChart(tree, typeTree)
         print("Here are the movies associate with the the gengre you picked: ")
         if(printMovies(gengreChose, tree[gengreChose])):
             continue;
         else:
             return False
     return ""
+
 
 def main():
     MOVIE_CACHE = open_cache()
@@ -283,9 +262,9 @@ def main():
 
     while(True):
         if(yes("Do you want to view the recent movies by gengre? ")):
-            interaction(recentTree)
+            interaction(recentTree, 'recent')
         elif(yes("Do you want to view the Top 250 popular movies by gengre? ")):
-            if(interaction(popularTree)):
+            if(not interaction(popularTree, 'popular')):
                 break;
         if(yes("Would you like to quit? ")):
             break;
