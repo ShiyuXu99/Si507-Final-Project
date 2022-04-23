@@ -1,6 +1,9 @@
 import requests
 import json
 from bs4 import BeautifulSoup
+import plotly.express as px
+from tabulate import tabulate
+
 #OMDb API: http://www.omdbapi.com/?i=tt3896198&apikey=c5eb6c3c
 #API Key: 2a79e05ccbae6651cc86911773917142
 
@@ -51,6 +54,8 @@ def get_movie_info_fromWeb(movie):
         print(movie.TicketURL)
     movie.MovieDescription = soup.find('p',class_='show-text').get_text()
     movie.Genre = soup.find(attrs={'itemprop': 'genre' }).get_text()
+    if(movie.Genre) == "":
+        movie.Genre = "N/A"
 
     return (movie.Genre, movie.PGRate, movie.MovieDescription)
 
@@ -117,10 +122,6 @@ def get_popular_movie(MOVIE_CACHE):
             save_cache(MOVIE_CACHE)
     
         popularMovie.append(movieObject)
-
-        count += 1
-        if(count > 50):
-            break;
     return popularMovie
 
 
@@ -196,13 +197,101 @@ def constructTree(movies, genreList):
                 movieData[movie.MovieName] = {'URL': movie.TicketURL, 'PG':movie.PGRate, 'Description':movie.MovieDescription}
                 tree[genre] = movieData
     return tree
+def printMovies(gengreChose, tree):
+    data = []
+    count = 1
+    for key in tree:
+        longtext =  tree[key]['Description'].split()
+        grouped_words = [' '.join(longtext[i: i + 10]) for i in range(0, len(longtext), 10)]
+        des = '\n'.join(grouped_words)
+        data.append([count, key, tree[key]['PG'], des]) 
+        count += 1
+    print(tabulate(data, headers=["Movie Index", "Movie Name","Movie PG", "Movie Description"], tablefmt="fancy_grid"))
+    while(True):
+        choice = input("Please pick a movie and I will redirect you to the movie page. If none of the movie interest you , type quit or back to chose a different gengre: ")
+        if(choice.lower() == 'back'):
+            return True
+        elif(choice.lower() == 'quit'):
+            return False
 
 
+
+def drawPieChart(tree):
+    df = px.data.tips()
+    value = []
+    names = []
+    counter = 1
+    for key in tree:
+        namestr = "{}. {}".format(counter, key)
+        value.append(len(tree[key]))
+        names.append(namestr)
+        counter += 1
+    fig = px.pie(values= value, names=names)
+    fig.show()
+    ans = num("Please pick a number for the gengre that you are interest in. ", 1, len(value))
+    for name in names:
+        namedata = name.split('.')
+        if( namedata[0] == str(ans)):
+            return namedata[1].strip()
+
+def yes(prompt):
+    """ returns a boolean
+    Check whether the node is a answer.
+    Return true if the answer is yes.
+    Return false if the answer is no.
+    """
+    yesList = ['yes','yep','sure', 'y']
+    noList = ['nop','no','not','n']
+    while(True):
+        answer = input(prompt).lower()
+        if(answer in yesList):
+            return True
+        elif (answer in noList):
+            return False
+        else:
+            print("Please enter a yes or no answer.\n")
+
+def num(prompt, min, max):
+    while(True):
+        try:
+            answer = int(input(prompt).lower())
+            if(answer < min or answer > max):
+                print("Please enter a valid number between {} and {}".format(min,max))
+            else:
+                return answer
+        except:
+            print("Please enter a valid number between {} and {}".format(min,max))
+
+def interaction(tree):
+    while(True):
+        gengreChose = drawPieChart(tree)
+        print("Here are the movies associate with the the gengre you picked: ")
+        if(printMovies(gengreChose, tree[gengreChose])):
+            continue;
+        else:
+            return False
+    return ""
 
 def main():
     MOVIE_CACHE = open_cache()
-    data = get_popular_movie(MOVIE_CACHE)
-    print(data)
+    popularMoviedata = get_popular_movie(MOVIE_CACHE)
+    recentMoviedata = get_recent_movie(MOVIE_CACHE)
+    recentGengre = getGenre(recentMoviedata)
+    popularGengre = getGenre(popularMoviedata)
+    recentTree = constructTree(recentMoviedata, recentGengre)
+    popularTree = constructTree(popularMoviedata, popularGengre)
+
+    while(True):
+        if(yes("Do you want to view the recent movies by gengre? ")):
+            interaction(recentTree)
+        elif(yes("Do you want to view the Top 250 popular movies by gengre? ")):
+            if(interaction(popularTree)):
+                break;
+        if(yes("Would you like to quit? ")):
+            break;
+
+
+
 
 
 
