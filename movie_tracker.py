@@ -5,6 +5,7 @@ import plotly.express as px
 from tabulate import tabulate
 import webbrowser
 from build_tree import *
+from read_tree import *
 
 
 #OMDb API: http://www.omdbapi.com/?i=tt3896198&apikey=c5eb6c3c
@@ -255,10 +256,9 @@ def main():
     MOVIE_CACHE = open_cache()
     popularMoviedata = get_popular_movie(MOVIE_CACHE)
     recentMoviedata = get_recent_movie(MOVIE_CACHE)
-    recentGengre = getGenre(recentMoviedata)
-    popularGengre = getGenre(popularMoviedata)
-    recentTree = constructTree(recentMoviedata, recentGengre)
-    popularTree = constructTree(popularMoviedata, popularGengre)
+    recentTree = read_tree(recentMoviedata, 'recent')
+    popularTree = read_tree(popularMoviedata, 'popular')
+
 
     while(True):
         if(yes("Do you want to view the recent movies by gengre? ")):
