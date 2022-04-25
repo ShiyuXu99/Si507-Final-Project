@@ -254,20 +254,26 @@ def interaction(tree, typeTree):
 
 def main():
     MOVIE_CACHE = open_cache()
-    popularMoviedata = get_popular_movie(MOVIE_CACHE)
     recentMoviedata = get_recent_movie(MOVIE_CACHE)
+    popularMoviedata = get_popular_movie(MOVIE_CACHE)
     recentTree = read_tree(recentMoviedata, 'recent')
     popularTree = read_tree(popularMoviedata, 'popular')
 
-
+    print('''Hello, welcome to movie tracker, a project that can suggest the most recent or the most popular movies for you. Let's get started!\n''')
+    skip = False
     while(True):
-        if(yes("Do you want to view the recent movies by gengre? ")):
+        if(not skip):
+            print('Do you want to view the recent movies by gengre, or the Top 250 popular movies by gengre?')
+        ans = input('''Please input 'recent', 'popular', or 'quit' for exiting the project: ''')
+        if(ans.lower() == 'recent'):
             interaction(recentTree, 'recent')
-        elif(yes("Do you want to view the Top 250 popular movies by gengre? ")):
-            if(not interaction(popularTree, 'popular')):
-                break;
-        if(yes("Would you like to quit? ")):
+        elif(ans.lower() == 'popular'):
+            interaction(popularTree, 'popular')
+        elif(ans.lower() == 'quit'):
             break;
+        else:
+            print(''' Please input 'recent', 'popular', or 'quit' for exiting the project.''')
+            skip = True;
 
 
 
