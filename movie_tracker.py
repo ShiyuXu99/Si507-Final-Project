@@ -8,7 +8,7 @@ from build_tree import *
 from read_tree import *
 
 
-#OMDb API: http://www.omdbapi.com/?i=tt3896198&apikey=c5eb6c3c
+#OMDb API: https://www.omdbapi.com
 #API Key: 2a79e05ccbae6651cc86911773917142
 
 
