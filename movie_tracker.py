@@ -172,7 +172,7 @@ def printMovies(gengreChose, tree):
         count += 1
     print(tabulate(data, headers=["Movie Index", "Movie Name","Movie PG", "Movie Description"], tablefmt="fancy_grid"))
     while(True):
-        choice = input("Please pick a movie by index and I will redirect you to the ticket/information page. \nIf none of the movie interest you , type 'quit' or 'back' to chose a different gengre: ")
+        choice = input("Please pick a movie by index and I will redirect you to the ticket/information page. \nIf none of the movie interest you , type 'quit' or 'back' to choose a different gengre: ")
         if(choice.lower() == 'back'):
             return True
         elif(choice.lower() == 'quit'):
@@ -207,7 +207,7 @@ def drawChart(tree, typeTree):
         fig = px.bar(x = names, y = value)
     fig.show()
 
-    ans = num("Please pick a number for the gengre that you are interest in. ", 1, len(value))
+    ans = num("Please pick a number for the gengre that you are interest in: ", 1, len(value))
     for name in names:
         namedata = name.split('.')
         if( namedata[0] == str(ans)):
