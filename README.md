@@ -6,8 +6,11 @@ Simply run the file named movie_tracker in your terminal, and the program will p
 
 ### Packages needed to be downloaded and instructions:
 `pip install requests`
+
 `pip install beautifulsoup4` or `pip3 install beautifulsoup4`
+
 `pip install plotly` or `pip3 install plotly`
+
 `pip install tabulate` or `pip3 install tabulate`
 
 API used:
