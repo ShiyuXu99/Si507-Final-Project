@@ -11,8 +11,11 @@ Simply run the file named movie_tracker in your terminal, and the program will p
 `pip install tabulate` or `pip3 install tabulate`
 
 API used:
+
 OMDb API: https://www.omdbapi.com
+
 API Key: 2a79e05ccbae6651cc86911773917142
+
 Other websites used (with multiple pages not listed):
 https://www.amctheatres.com
 https://www.imdb.com
@@ -30,6 +33,8 @@ I’m using a tree structure to organize my data. I constructed two trees with a
 {{comedy: {'Turning Red': {'URL: 'URL Here', 'PG': 'PG 13'}, {'How to train your dragon': {'URL: 'URL Here', 'PG': 'PG 13'}}, {Action movies: {...}}}
 
 Construct tree python file: `build_tree.py`
+
 JSON file with tree: `tree_data.json`
+
 Read info python file: `read_tree.py`
 
